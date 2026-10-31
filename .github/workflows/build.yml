@@ -15,7 +15,7 @@ permissions:
 jobs:
   build:
     name: Build Android APK
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout project
@@ -24,7 +24,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.11'
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -32,10 +32,17 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Install system dependencies
+      - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y git zip unzip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo6 cmake libffi-dev libssl-dev automake autopoint gettext
+          sudo apt-get install -y \
+            git zip unzip \
+            autoconf automake autopoint \
+            libtool libtool-bin libltdl-dev \
+            pkg-config zlib1g-dev \
+            libncurses5-dev libncursesw5-dev \
+            libtinfo6 cmake libffi-dev libssl-dev \
+            gettext
 
       - name: Install Buildozer
         run: |
@@ -51,4 +58,3 @@ jobs:
           name: Phoenix-Mobile-APK
           path: bin/*.apk
           if-no-files-found: error
-
