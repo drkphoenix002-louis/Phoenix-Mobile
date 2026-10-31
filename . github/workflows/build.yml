@@ -1,0 +1,33 @@
+name: Build Phoenix Mobile APK
+
+on:
+  push:
+    paths:
+      - 'main.py'
+      - 'buildozer.spec'
+      - '.github/workflows/build.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get project files
+        uses: actions/checkout@v4
+
+      - name: Build APK
+        uses: ArtemSBulgakov/buildozer-action@v1
+        id: buildozer
+        with:
+          buildozer_version: stable
+
+      - name: Save APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Phoenix-Mobile-APK
+          path: ${{ steps.buildozer.outputs.filename }}
