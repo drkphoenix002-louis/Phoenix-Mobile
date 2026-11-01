@@ -213,38 +213,58 @@ class PhoenixMobile(App):
 
     # DOWNLOAD SPEED TEST
 
-    def speed_test(self, instance):
-        self.run_test(self.check_speed)
-
+    
     def check_speed(self):
-        url = (
-            "https://speed.cloudflare.com/"
-            "__down?bytes=1000000"
-        )
+        servers = [
+            "https://speedtest.tele2.net/1MB.zip",
+            "https://proof.ovh.net/files/1Mb.dat"
+        ]
 
-        start = time.time()
+        errors = []
 
-        with urllib.request.urlopen(
-            url,
-            timeout=30,
-            context=SSL_CONTEXT
-        ) as response:
+        for url in servers:
+            try:
+                request = urllib.request.Request(
+                    url,
+                    headers={
+                        "User-Agent": "NetworkDiagnosis/2.0"
+                    }
+                )
 
-            data = response.read()
+                start = time.time()
 
-        elapsed = time.time() - start
+                with urllib.request.urlopen(
+                    request,
+                    timeout=30,
+                    context=SSL_CONTEXT
+                ) as response:
+                    data = response.read(1_000_000)
 
-        mbps = (
-            (len(data) * 8) /
-            elapsed /
-            1000000
-        )
+                elapsed = time.time() - start
+
+                if not data or elapsed <= 0:
+                    raise Exception("No download data received")
+
+                mbps = (
+                    len(data) * 8 /
+                    elapsed / 1_000_000
+                )
+
+                return (
+                    "Download test completed!\n"
+                    "Server: " + url.split("/")[2] + "\n"
+                    "Downloaded: %.2f MB\n"
+                    "Speed: %.2f Mbps"
+                    % (len(data) / 1_000_000, mbps)
+                )
+
+            except Exception as error:
+                errors.append(str(error))
 
         return (
-            "Download test completed\n"
-            "Downloaded: %.2f MB\n"
-            "Speed: %.2f Mbps"
-            % (len(data) / 1000000, mbps)
+            "Download test failed.\n"
+            "All test servers were unavailable.\n"
+            + "\n".join(errors)
         )
 
 
