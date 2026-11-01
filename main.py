@@ -3,6 +3,8 @@ import socket
 import threading
 import time
 import urllib.request
+import ssl
+import certifi
 
 from kivy.app import App
 from kivy.clock import Clock
@@ -12,6 +14,11 @@ from kivy.uix.label import Label
 from kivy.uix.scrollview import ScrollView
 from kivy.core.window import Window
 
+
+# Secure HTTPS certificate configuration
+SSL_CONTEXT = ssl.create_default_context(
+    cafile=certifi.where()
+)
 
 Window.clearcolor = (0.035, 0.055, 0.08, 1)
 
@@ -56,12 +63,15 @@ class PhoenixMobile(App):
         root.add_widget(self.status)
 
         scroll = ScrollView()
+
         buttons = BoxLayout(
             orientation="vertical",
             spacing=10,
             size_hint_y=None
         )
-        buttons.bind(minimum_height=buttons.setter("height"))
+        buttons.bind(
+            minimum_height=buttons.setter("height")
+        )
 
         options = [
             ("INTERNET CONNECTION", self.internet_test),
@@ -112,11 +122,16 @@ class PhoenixMobile(App):
                 lambda dt: self.show_result(message)
             )
 
-        threading.Thread(target=worker, daemon=True).start()
+        threading.Thread(
+            target=worker,
+            daemon=True
+        ).start()
 
     def show_result(self, message):
         self.status.text = "Test completed"
         self.result.text = message
+
+    # INTERNET CONNECTION
 
     def internet_test(self, instance):
         self.run_test(self.check_internet)
@@ -126,62 +141,113 @@ class PhoenixMobile(App):
             "https://example.com",
             headers={"User-Agent": "PhoenixMobile"}
         )
-        with urllib.request.urlopen(request, timeout=10) as response:
-            return "Internet connection: OK\nHTTP status: " + str(response.status)
+
+        with urllib.request.urlopen(
+            request,
+            timeout=10,
+            context=SSL_CONTEXT
+        ) as response:
+            return (
+                "Internet connection: OK\n"
+                "HTTP status: " + str(response.status)
+            )
+
+    # DNS LOOKUP
 
     def dns_test(self, instance):
         self.run_test(self.check_dns)
 
     def check_dns(self):
         addresses = socket.getaddrinfo(
-            "google.com", 443,
+            "google.com",
+            443,
             type=socket.SOCK_STREAM
         )
+
         ip = addresses[0][4][0]
-        return "DNS lookup successful\nGoogle IP: " + ip
+
+        return (
+            "DNS lookup successful\n"
+            "Google IP: " + ip
+        )
+
+    # CONNECTION TEST
 
     def ping_test(self, instance):
         self.run_test(self.check_ping)
 
     def check_ping(self):
         start = time.time()
+
         connection = socket.create_connection(
-            ("1.1.1.1", 443), timeout=8
+            ("1.1.1.1", 443),
+            timeout=8
         )
+
         connection.close()
+
         elapsed = (time.time() - start) * 1000
-        return "Connection to 1.1.1.1: OK\nResponse time: %.2f ms" % elapsed
+
+        return (
+            "Connection to 1.1.1.1: OK\n"
+            "Response time: %.2f ms" % elapsed
+        )
+
+    # PUBLIC IP
 
     def public_ip(self, instance):
         self.run_test(self.check_public_ip)
 
     def check_public_ip(self):
         with urllib.request.urlopen(
-            "https://api.ipify.org", timeout=10
+            "https://api.ipify.org",
+            timeout=10,
+            context=SSL_CONTEXT
         ) as response:
+
             ip = response.read().decode()
-        return "Public IP check successful\n" + ip
+
+        return (
+            "Public IP check successful\n" + ip
+        )
+
+    # DOWNLOAD SPEED TEST
 
     def speed_test(self, instance):
         self.run_test(self.check_speed)
 
     def check_speed(self):
-        url = "https://speed.cloudflare.com/__down?bytes=1000000"
+        url = (
+            "https://speed.cloudflare.com/"
+            "__down?bytes=1000000"
+        )
+
         start = time.time()
 
-        with urllib.request.urlopen(url, timeout=30) as response:
+        with urllib.request.urlopen(
+            url,
+            timeout=30,
+            context=SSL_CONTEXT
+        ) as response:
+
             data = response.read()
 
         elapsed = time.time() - start
-        mbps = (len(data) * 8) / elapsed / 1000000
+
+        mbps = (
+            (len(data) * 8) /
+            elapsed /
+            1000000
+        )
 
         return (
             "Download test completed\n"
             "Downloaded: %.2f MB\n"
-            "Speed: %.2f Mbps" %
-            (len(data) / 1000000, mbps)
+            "Speed: %.2f Mbps"
+            % (len(data) / 1000000, mbps)
         )
 
 
 if __name__ == "__main__":
     PhoenixMobile().run()
+
